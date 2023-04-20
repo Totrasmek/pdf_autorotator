@@ -4,6 +4,7 @@
 # Remember to pip install the below imports (PIL, pytesseract, pdf2image, PyPDF2)
 
 from PIL import Image # image object for handing to OCR
+import cv2 # image object
 
 import pytesseract # OCR
 
@@ -11,13 +12,15 @@ from pdf2image import convert_from_path # converts pdf to images
 
 from PyPDF2 import PdfReader, PdfWriter # edits pdfs
 
-import os # to remove files
+from os import remove, listdir # to remove files and get a list of all goal pdfs
+from os.path import isfile,join # to get a list of all goal pdfs
+import psutil # for closing image displays
+
+import random
 
 
 # converts ONLY THE FIRST PAGE Of a given pdf to an image
 def pdf2im(pdf_path,out_name,pages=None):
-
-    print("Converting PDF to image")
 
     pages = convert_from_path(pdf_path)
     pages[0].save(out_name,'PNG')
@@ -40,35 +43,44 @@ def find_substring(source_string,start_string,end_string):
 
 
 # uses OCR to determine the angle needed to rotate a pdf upright
-# fails if the OCR's orientation confidence is less than the threshold
-def get_rotate_angle(pdf_path,OCR_threshold = 1.0):
+# asks user to confirm rotation angle
+def get_rotate_angle(pdf_path):
 
     image_name = 'out.png'
-    pdf2im("WP0184A-E0119-RF-PointToPoint-(Scanned).pdf",image_name)
-    image = Image.open(image_name)
-    
-    print("Finding necessary rotation angle with OCR")
+    pdf2im(pdf_path,image_name)
+    image = cv2.imread(image_name)#Image.open(image_name)
     
     data = pytesseract.image_to_osd(image)
     
     orientation_confidence = float(find_substring(data,"Orientation confidence: ","\n"))
     rotation_angle = int(find_substring(data,"Rotate: ","\n"))
     
-    print("OCR orientation confidence is " + str(orientation_confidence))
-    print("Rotation angle is " + str(rotation_angle))
+    cv2.imshow("Window",image)
+    cv2.waitKey(0)
+    #image.show()
     
-    if (orientation_confidence > OCR_threshold):
-        rotate_angle = -rotation_angle
-        
-        print("PDF to be rotated by " + str(rotate_angle) + " degrees")
-    else:
-        rotate_angle = 0
-        
-        print("Confidence below threshold of " + str(OCR_threshold))
+    print("OCR's guessed rotation angle: " + str(rotation_angle) + " degrees clockwise\n Confidence: " + str(orientation_confidence))
     
-    os.remove(image_name)
+    user_input = ""
     
-    return rotate_angle
+    while(True):
+        user_input = input("Is this rotation angle correct? y/n:  ")
+        if (user_input == "y"):
+            break
+        elif (user_input == "n"):
+            rotation_angle = int(input("Please enter an alternative rotation angle (multiple of 90deg):  "))
+            while(rotation_angle%90 != 0):
+                rotation_angle = input("Please enter an alternative rotation angle (multiple of 90deg):  ")
+            break
+    
+    cv2.destroyAllWindows()
+
+    
+    print("PDF to be rotated by " + str(rotation_angle) + " degrees")
+    
+    remove(image_name)
+    
+    return rotation_angle
     
 
 # rotates a pdf by a given angle
@@ -79,9 +91,8 @@ def rotate_pdf(pdf_path,angle):
         
     elif (angle == 0):
         print("No rotation requested")
-        
+    
     else:
-
         reader = PdfReader(pdf_path)
         writer = PdfWriter()
         
@@ -95,13 +106,17 @@ def rotate_pdf(pdf_path,angle):
 # orients a pdf upright
 def orient_pdf(pdf_path):
 
-    print("Orienting pdf " + pdf_path)
+    print(pdf_path)
     
     angle = get_rotate_angle(pdf_path)
     rotate_pdf(pdf_path,angle)
+    
+    print("\n\n\n\n")
 
-pdf_name = "WP0184_E0708-RF-Point to Point (Scanned).pdf"
 
-rotate_pdf(pdf_name,90)
-orient_pdf(pdf_name)
-
+if __name__ == '__main__':
+    pdf_directory = "pdfs"
+    pdf_files = [file for file in listdir(pdf_directory) if isfile(join(pdf_directory, file))]
+    for file in pdf_files:
+        rotate_pdf("pdfs//"+file,random.randint(1,3)*90)
+        orient_pdf("pdfs//"+file)
