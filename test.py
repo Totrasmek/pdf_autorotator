@@ -3,27 +3,35 @@
 # poppler: https://github.com/oschwartz10612/poppler-windows/releases/
 # Remember to pip install the below imports (PIL, pytesseract, pdf2image, PyPDF2)
 
-from PIL import Image # image object for handing to OCR
-import cv2 # image object
+import PIL # image object for handing to OCR
+#from PIL import ImageTk
+import tkinter # for displaying images
+import matplotlib.pyplot
+import numpy
 
 import pytesseract # OCR
 
-from pdf2image import convert_from_path # converts pdf to images
+import pdf2image # converts pdf to images
 
-from PyPDF2 import PdfReader, PdfWriter # edits pdfs
+import PyPDF2 # edits pdfs
 
-from os import remove, listdir # to remove files and get a list of all goal pdfs
-from os.path import isfile,join # to get a list of all goal pdfs
-import psutil # for closing image displays
-
+import os # to remove files and get a list of all goal pdfs
 import random
 
+# display = tkinter.Tk()
+# canvas = tkinter.Canvas(display, width = 700, height = 700)
+# canvas.pack()
+
+matplotlib.pyplot.ion()
+matplotlib.pyplot.figure(0,figsize=(13,8))
+matplotlib.pyplot.axis('off')
+matplotlib.pyplot.grid(False)
 
 # converts ONLY THE FIRST PAGE Of a given pdf to an image
 def pdf2im(pdf_path,out_name,pages=None):
 
-    pages = convert_from_path(pdf_path)
-    pages[0].save(out_name,'PNG')
+    pages = pdf2image.convert_from_path(pdf_path)
+    pages[0].save(out_name,'JPEG')
 
 
 # finds a substring between two given strings
@@ -46,20 +54,22 @@ def find_substring(source_string,start_string,end_string):
 # asks user to confirm rotation angle
 def get_rotate_angle(pdf_path):
 
-    image_name = 'out.png'
+    image_name = 'out.jpg'
     pdf2im(pdf_path,image_name)
-    image = cv2.imread(image_name)#Image.open(image_name)
     
-    data = pytesseract.image_to_osd(image)
+    image_PIL = PIL.Image.open(image_name)
+    image = numpy.asarray(image_PIL)
+    
+    data = pytesseract.image_to_osd(image_PIL)
     
     orientation_confidence = float(find_substring(data,"Orientation confidence: ","\n"))
     rotation_angle = int(find_substring(data,"Rotate: ","\n"))
     
-    cv2.imshow("Window",image)
-    cv2.waitKey(0)
-    #image.show()
     
-    print("OCR's guessed rotation angle: " + str(rotation_angle) + " degrees clockwise\n Confidence: " + str(orientation_confidence))
+    matplotlib.pyplot.imshow(image)
+    matplotlib.pyplot.show()
+
+    print("OCR's guessed rotation angle: " + str(rotation_angle) + " degrees clockwise\nConfidence: " + str(orientation_confidence))
     
     user_input = ""
     
@@ -72,13 +82,8 @@ def get_rotate_angle(pdf_path):
             while(rotation_angle%90 != 0):
                 rotation_angle = input("Please enter an alternative rotation angle (multiple of 90deg):  ")
             break
-    
-    cv2.destroyAllWindows()
 
-    
     print("PDF to be rotated by " + str(rotation_angle) + " degrees")
-    
-    remove(image_name)
     
     return rotation_angle
     
@@ -87,14 +92,14 @@ def get_rotate_angle(pdf_path):
 def rotate_pdf(pdf_path,angle):
 
     if (angle%90 != 0):
-        print("Requested rotation angle is not a multiple of 90deg. No rotation applied to "+pdf_path)
+        print("Requested rotation angle is not a multiple of 90deg. No rotation applied")
         
     elif (angle == 0):
         print("No rotation requested")
     
     else:
-        reader = PdfReader(pdf_path)
-        writer = PdfWriter()
+        reader = PyPDF2.PdfReader(pdf_path)
+        writer = PyPDF2.PdfWriter()
         
         for page in reader.pages:
             page.rotate(angle)
@@ -106,17 +111,17 @@ def rotate_pdf(pdf_path,angle):
 # orients a pdf upright
 def orient_pdf(pdf_path):
 
-    print(pdf_path)
+    print(pdf_path[6:-1])
     
     angle = get_rotate_angle(pdf_path)
     rotate_pdf(pdf_path,angle)
     
-    print("\n\n\n\n")
-
+    print("\n\n")
 
 if __name__ == '__main__':
     pdf_directory = "pdfs"
-    pdf_files = [file for file in listdir(pdf_directory) if isfile(join(pdf_directory, file))]
+    pdf_files = [file for file in os.listdir(pdf_directory) if os.path.isfile(os.path.join(pdf_directory, file))]
     for file in pdf_files:
-        rotate_pdf("pdfs//"+file,random.randint(1,3)*90)
         orient_pdf("pdfs//"+file)
+        
+    matplotlib.pyplot.close()
