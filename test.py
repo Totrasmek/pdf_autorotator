@@ -4,8 +4,6 @@
 # Remember to pip install the below imports (PIL, pytesseract, pdf2image, PyPDF2)
 
 import PIL # image object for handing to OCR
-#from PIL import ImageTk
-import tkinter # for displaying images
 import matplotlib.pyplot
 import numpy
 
@@ -17,10 +15,6 @@ import PyPDF2 # edits pdfs
 
 import os # to remove files and get a list of all goal pdfs
 import random
-
-# display = tkinter.Tk()
-# canvas = tkinter.Canvas(display, width = 700, height = 700)
-# canvas.pack()
 
 matplotlib.pyplot.ion()
 matplotlib.pyplot.figure(0,figsize=(13,8))
