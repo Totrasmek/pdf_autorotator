@@ -3,6 +3,10 @@
 # poppler: https://github.com/oschwartz10612/poppler-windows/releases/
 # Remember to pip install the below imports (PIL, pytesseract, pdf2image, PyPDF2)
 
+# If receiving errors to do with pdf2image (e.g. pdf2image.exceptions.PDFPageCountError: Unable to get page count.)
+# this could be caused by a file path error (e.g. file path too long, common in deep drive share directory trees)
+# So instead, just copy paste your pdfs into the /pdfs folder
+
 import PIL # image object for handing to OCR
 import matplotlib.pyplot
 import numpy
@@ -105,17 +109,17 @@ def rotate_pdf(pdf_path,angle):
 # orients a pdf upright
 def orient_pdf(pdf_path):
 
-    print(pdf_path[6:-1])
+    print(pdf_path)
     
     angle = get_rotate_angle(pdf_path)
     rotate_pdf(pdf_path,angle)
     
-    print("\n\n")
+    ##print("\n\n")
 
 if __name__ == '__main__':
-    pdf_directory = "pdfs"
+    pdf_directory = "pdfs\\"
     pdf_files = [file for file in os.listdir(pdf_directory) if os.path.isfile(os.path.join(pdf_directory, file))]
     for file in pdf_files:
-        orient_pdf("pdfs//"+file)
+        orient_pdf(pdf_directory+file)
         
     matplotlib.pyplot.close()
